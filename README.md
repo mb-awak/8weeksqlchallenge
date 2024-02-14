@@ -1,111 +1,16 @@
-# Case Study 1
+**Introduction**
+Danny seriously loves Japanese food so in the beginning of 2021, he decides to embark upon a risky venture and opens up a cute little restaurant that sells his 3 favourite foods: sushi, curry and ramen.
 
---What is the total amount each customer spent at the restaurant?
+Danny’s Diner is in need of your assistance to help the restaurant stay afloat - the restaurant has captured some very basic data from their few months of operation but have no idea how to use their data to help them run the business.
 
-SELECT customer_id, sum(price) total_amt
-FROM sales s 
-JOIN menu m ON s.product_id = m.product_id
-GROUP BY customer_id 
-ORDER BY 2 DESC;
+**Problem Statement**
+Danny wants to use the data to answer a few simple questions about his customers, especially about their visiting patterns, how much money they’ve spent and also which menu items are their favourite. Having this deeper connection with his customers will help him deliver a better and more personalised experience for his loyal customers.
 
---How many days has each customer visited the restaurant?
+He plans on using these insights to help him decide whether he should expand the existing customer loyalty program - additionally he needs help to generate some basic datasets so his team can easily inspect the data without needing to use SQL.
 
-SELECT customer_id, COUNT(DISTINCT order_date) days
-FROM sales
-GROUP BY customer_id;
+Danny has provided you with a sample of his overall customer data due to privacy issues - but he hopes that these examples are enough for you to write fully functioning SQL queries to help him answer his questions!
 
---What was the first item from the menu purchased by each customer?
-
-WITH CTE AS (
-	SELECT customer_id, order_date, product_name,
-	RANK() OVER(PARTITION BY customer_id ORDER BY order_date) AS rnk,
-	ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY order_date) AS rn
-	FROM sales S
-	JOIN menu M 
-	ON s.product_id = m.product_id)
-SELECT customer_id, product_name
-FROM CTE
-WHERE rn = 1;
-
---What is the most purchased item on the menu and how many times was it purchased by all customers?
-
-SELECT product_name, COUNT(order_date) AS orders
-FROM sales s 
-JOIN menu m 
-ON s.product_id = m.product_id
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 1;
-
-
---Which item was the most popular for each customer?
-
-WITH CTE AS (
-	SELECT product_name, customer_id, COUNT(order_date) orders,
-	RANK() OVER(PARTITION BY customer_id ORDER BY COUNT(order_date) DESC) as rnk,
-	ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY COUNT(order_date) DESC) as rn
-	FROM sales S
-	JOIN menu M 
-	ON s.product_id = m.product_id
-	GROUP BY product_name, customer_id)
-SELECT customer_id, product_name
-FROM CTE
-WHERE rn = 1;
-
---Which item was purchased first by the customer after they became a member?
-
-WITH CTE AS (
-	SELECT s.customer_id, order_date, join_date, product_name,
-	RANK() OVER(PARTITION BY s.customer_id ORDER BY order_date) as rnk
-	FROM sales s
-	JOIN members m ON m.customer_id = s.customer_id
-	JOIN menu me ON s.product_id = me.product_id
-	WHERE order_date >= join_date)
-SELECT customer_id, product_name
-FROM CTE
-WHERE rnk = 1;
-	
---Which item was purchased just before the customer became a member?
-WITH CTE AS (
-	SELECT s.customer_id, order_date, join_date, product_name,
-	RANK() OVER(PARTITION BY s.customer_id ORDER BY order_date DESC) as rnk
-	FROM sales s
-	JOIN members m ON m.customer_id = s.customer_id
-	JOIN menu me ON s.product_id = me.product_id
-	WHERE order_date < join_date)
-SELECT customer_id, product_name
-FROM CTE
-WHERE rnk = 1;
-
---What is the total items and amount spent for each member before they became a member?
-
-SELECT s.customer_id, count(product_name) as total_items, sum(price) amt_spent
-FROM sales s
-JOIN members m ON m.customer_id = s.customer_id
-JOIN menu me ON s.product_id = me.product_id
-WHERE order_date < join_date
-GROUP BY 1;
-
---If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-
-SELECT customer_id,
-SUM (CASE WHEN product_name ='sushi' THEN price * 10 * 2
-ELSE price * 10 
-END) AS points
-FROM menu m 
-JOIN sales s ON s.product_id = m.product_id
-GROUP BY 1;
-
---In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-
-SELECT s.customer_id,
-	SUM(CASE 
-		WHEN order_date BETWEEN m.join_date AND (m.join_date + INTERVAL '6 days') THEN price * 10 * 2
-		WHEN product_name ='sushi' THEN price * 10 * 2 
-		ELSE price * 10 
-	END) AS points
-	FROM menu me
-	JOIN sales s ON s.product_id = me.product_id
-	JOIN members m ON s.customer_id = m.customer_id
-	WHERE DATE_TRUNC('month', order_date) = '2021-01-01'
-	GROUP BY s.customer_id;
+Danny has shared with you 3 key datasets for this case study:
+- sales
+- menu
+- members
